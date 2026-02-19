@@ -11,17 +11,13 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-// =====================
-// MongoDB Connection
-// =====================
+// MongoDB connect
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log("MongoDB Error:", err));
+  .catch((err) => console.log(err));
 
-// =====================
 // Schema
-// =====================
 const urlSchema = new mongoose.Schema({
   original_url: String,
   short_url: Number,
@@ -29,22 +25,12 @@ const urlSchema = new mongoose.Schema({
 
 const Url = mongoose.model("Url", urlSchema);
 
-// =====================
-// Home Route
-// =====================
+// Home
 app.get("/", (req, res) => {
-  res.send(`
-    <h1>URL Shortener Microservice</h1>
-    <form action="/api/shorturl" method="POST">
-      <input type="text" name="url" placeholder="https://www.google.com" required>
-      <button type="submit">Shorten URL</button>
-    </form>
-  `);
+  res.send("URL Shortener Microservice");
 });
 
-// =====================
 // Create Short URL
-// =====================
 app.post("/api/shorturl", async (req, res) => {
   const originalUrl = req.body.url;
 
@@ -60,26 +46,26 @@ app.post("/api/shorturl", async (req, res) => {
         return res.json({ error: "invalid url" });
       }
 
-      // Check if URL already exists
+      // Check if exists
       const existing = await Url.findOne({ original_url: originalUrl });
       if (existing) {
-        return res.json({
-          original_url: existing.original_url,
-          short_url: existing.short_url,
-        });
+        return res.json(existing);
       }
 
-      const count = await Url.countDocuments({});
+      // Get next ID safely
+      const last = await Url.findOne().sort({ short_url: -1 });
+      const nextId = last ? last.short_url + 1 : 1;
+
       const newUrl = new Url({
         original_url: originalUrl,
-        short_url: count + 1,
+        short_url: nextId,
       });
 
       await newUrl.save();
 
       res.json({
         original_url: originalUrl,
-        short_url: count + 1,
+        short_url: nextId,
       });
     });
   } catch (err) {
@@ -87,9 +73,7 @@ app.post("/api/shorturl", async (req, res) => {
   }
 });
 
-// =====================
 // Redirect
-// =====================
 app.get("/api/shorturl/:short_url", async (req, res) => {
   const shortUrl = parseInt(req.params.short_url);
 
@@ -102,7 +86,6 @@ app.get("/api/shorturl/:short_url", async (req, res) => {
   }
 });
 
-// =====================
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
