@@ -9,18 +9,21 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-// In-memory database
 let urlDatabase = {};
 let counter = 1;
 
-// Home route
+// Home
 app.get("/", (req, res) => {
   res.send("URL Shortener Microservice");
 });
 
-// POST route
+// POST
 app.post("/api/shorturl", (req, res) => {
   const originalUrl = req.body.url;
+
+  if (!originalUrl) {
+    return res.json({ error: "invalid url" });
+  }
 
   try {
     const parsedUrl = new URL(originalUrl);
@@ -34,8 +37,10 @@ app.post("/api/shorturl", (req, res) => {
         return res.json({ error: "invalid url" });
       }
 
-      const shortUrl = counter++;
+      // Save URL
+      const shortUrl = counter;
       urlDatabase[shortUrl] = originalUrl;
+      counter++;
 
       res.json({
         original_url: originalUrl,
@@ -47,20 +52,17 @@ app.post("/api/shorturl", (req, res) => {
   }
 });
 
-// REDIRECT ROUTE (Very Important)
+// Redirect
 app.get("/api/shorturl/:short_url", (req, res) => {
   const shortUrl = parseInt(req.params.short_url);
 
-  const originalUrl = urlDatabase[shortUrl];
-
-  if (originalUrl) {
-    return res.redirect(originalUrl);
+  if (urlDatabase[shortUrl]) {
+    res.redirect(301, urlDatabase[shortUrl]); // 301 is important for FCC
   } else {
-    return res.json({ error: "No short URL found" });
+    res.json({ error: "No short URL found" });
   }
 });
 
-// PORT (Important for Render)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
