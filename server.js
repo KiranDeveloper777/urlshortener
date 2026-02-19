@@ -12,18 +12,37 @@ app.use(express.json());
 let urlDatabase = {};
 let counter = 1;
 
-// Home
+// =======================
+// HOME PAGE (HTML PAGE)
+// =======================
 app.get("/", (req, res) => {
-  res.send("URL Shortener Microservice");
+  res.send(`
+    <h1>URL Shortener Microservice</h1>
+
+    <h2>Short URL Creation</h2>
+    <p>Example: POST [project_url]/api/shorturl - https://www.google.com</p>
+
+    <form action="/api/shorturl" method="POST">
+      <input type="text" name="url" placeholder="https://www.freecodecamp.org/" required>
+      <button type="submit">Shorten URL</button>
+    </form>
+
+    <h3>Example Usage:</h3>
+    <p>[this_project_url]/api/shorturl/1</p>
+
+    <p>Will Redirect to:</p>
+    <p>https://www.freecodecamp.org/</p>
+
+    <hr>
+    <p>By freeCodeCamp</p>
+  `);
 });
 
-// POST
+// =======================
+// CREATE SHORT URL
+// =======================
 app.post("/api/shorturl", (req, res) => {
   const originalUrl = req.body.url;
-
-  if (!originalUrl) {
-    return res.json({ error: "invalid url" });
-  }
 
   try {
     const parsedUrl = new URL(originalUrl);
@@ -37,10 +56,8 @@ app.post("/api/shorturl", (req, res) => {
         return res.json({ error: "invalid url" });
       }
 
-      // Save URL
-      const shortUrl = counter;
+      const shortUrl = counter++;
       urlDatabase[shortUrl] = originalUrl;
-      counter++;
 
       res.json({
         original_url: originalUrl,
@@ -52,12 +69,14 @@ app.post("/api/shorturl", (req, res) => {
   }
 });
 
-// Redirect
+// =======================
+// REDIRECT
+// =======================
 app.get("/api/shorturl/:short_url", (req, res) => {
   const shortUrl = parseInt(req.params.short_url);
 
   if (urlDatabase[shortUrl]) {
-    res.redirect(301, urlDatabase[shortUrl]); // 301 is important for FCC
+    res.redirect(301, urlDatabase[shortUrl]);
   } else {
     res.json({ error: "No short URL found" });
   }
